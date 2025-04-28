@@ -1,5 +1,5 @@
 name: "AVE Websocket"
-version: "1.7.3"
+version: "1.7.4"
 slug: "avews"
 description: "Custom integration for AVE webserver"
 arch:
@@ -22,7 +22,7 @@ schema:
   poll_interval: int
   sync_lights_startup: bool
   verbose: bool
-host_network: true
-privileged:
-  - NET_ADMIN
+# host_network: true
+# privileged:
+#   - NET_ADMIN
 homeassistant_api: true
