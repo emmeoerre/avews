@@ -92,7 +92,7 @@ def update_home_assistant_binary_sensor(device):
 
 
 def send_mqtt_message(unique_id, state):
-    url = f"{HOME_ASSISTANT_URL}/api/services/mqtt/publish"
+    url = f"{HOME_ASSISTANT_URL}/services/mqtt/publish"
     data = {
         "payload": 0 if state == 0 else 1,
         "topic": f"/{WEB_SERVER_MAC.lower()}/devices/lights/{unique_id}/state",
