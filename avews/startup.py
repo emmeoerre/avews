@@ -10,16 +10,14 @@ from threading import Thread
 with open("/data/options.json") as f:
     options = json.load(f)
 
-print(options)
-
 # Use the Supervisor API URL and token
 HOME_ASSISTANT_URL = "http://supervisor/core/api"
 SUPERVISOR_TOKEN = os.getenv("SUPERVISOR_TOKEN")
 # Load configurable options
-WEB_SERVER_ADDRESS = options.get("web_server_address", "192.168.1.10") 
-POLL_INTERVAL = options.get("poll_interval", 10) 
-VERBOSE = options.get("verbose", False)  
-SYNC_ANTITHEFT = options.get("sync_antitheft", True) 
+WEB_SERVER_ADDRESS = options.get("web_server_address", "192.168.1.10")
+POLL_INTERVAL = options.get("poll_interval", 10)
+VERBOSE = options.get("verbose", False)
+SYNC_ANTITHEFT = options.get("sync_antitheft", True)
 
 # Device list
 DOMINAPLUS_MANAGER_deviceList = [
