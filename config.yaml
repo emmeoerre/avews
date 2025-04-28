@@ -9,10 +9,14 @@ startup: "application"
 boot: "auto"
 options:
   web_server_address: "192.168.1.10"
+  sync_antitheft: true
   poll_interval: 10
+  verbose: false
 schema:
   web_server_address: str
+  sync_antitheft: bool
   poll_interval: int
+  verbose: bool
 host_network: true
 privileged:
   - NET_ADMIN

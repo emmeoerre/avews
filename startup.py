@@ -16,9 +16,10 @@ print(options)
 HOME_ASSISTANT_URL = "http://supervisor/core/api"
 SUPERVISOR_TOKEN = os.getenv("SUPERVISOR_TOKEN")
 # Load configurable options
-WEB_SERVER_ADDRESS = options.get("web_server_address", "192.168.1.10")  # Default to 192.168.1.10
-POLL_INTERVAL = options.get("poll_interval", 10)  # Default to 10 seconds
-VERBOSE = options.get("verbose", False)  # Default to False
+WEB_SERVER_ADDRESS = options.get("web_server_address", "192.168.1.10") 
+POLL_INTERVAL = options.get("poll_interval", 10) 
+VERBOSE = options.get("verbose", False)  
+SYNC_ANTITHEFT = options.get("sync_antitheft", True) 
 
 # Device list
 DOMINAPLUS_MANAGER_deviceList = [
@@ -160,7 +161,9 @@ def connect_websocket():
             while True:
                 time.sleep(POLL_INTERVAL)
                 send_ws_command("GSF", ["12"])
-        Thread(target=send_gsf, daemon=True).start()
+        if SYNC_ANTITHEFT:
+            log_with_timestamp("Starting GSF command thread for type 12...", force=True)
+            Thread(target=send_gsf, daemon=True).start()
 
     def on_close(ws, close_status_code, close_msg):
         log_with_timestamp("WebSocket closed. Reconnecting...", force=True)
