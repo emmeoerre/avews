@@ -10,13 +10,16 @@ boot: "auto"
 url: "https://github.com/emmeoerre/avews/tree/main/avews"
 options:
   web_server_address: "192.168.1.10"
+  web_server_mac: "00:00:00:00:00:00"
   sync_antitheft: true
   poll_interval: 10
+  sync_lights_startup: true
   verbose: false
 schema:
   web_server_address: str
   sync_antitheft: bool
   poll_interval: int
+  sync_lights_startup: bool
   verbose: bool
 host_network: true
 privileged:

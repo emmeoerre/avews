@@ -17,9 +17,11 @@ HOME_ASSISTANT_URL = "http://supervisor/core/api"
 SUPERVISOR_TOKEN = os.getenv("SUPERVISOR_TOKEN")
 # Load configurable options
 WEB_SERVER_ADDRESS = options.get("web_server_address", "192.168.1.10")
+WEB_SERVER_MAC = options.get("web_server_mac", "00:00:00:00:00:00")
 POLL_INTERVAL = options.get("poll_interval", 10)
 VERBOSE = options.get("verbose", True)
 SYNC_ANTITHEFT = options.get("sync_antitheft", True)
+SYNC_LIGHTS_STARTUP = options.get("sync_lights_startup", True)
 
 # Device list
 DOMINAPLUS_MANAGER_deviceList = [
@@ -89,6 +91,27 @@ def update_home_assistant_binary_sensor(device):
         log_with_timestamp(f"[HA API]: Failed to update sensor: {device['ha_entity_id']} - {e}", force=True)
 
 
+def send_mqtt_message(unique_id, state):
+    url = f"{HOME_ASSISTANT_URL}/api/services/mqtt/publish"
+    data = {
+        "payload": 0 if state == 0 else 1,
+        "topic": f"/{WEB_SERVER_MAC.lower()}/devices/lights/{unique_id}/state",
+        "retain": False,
+    }
+
+    headers = {
+        "Authorization": f"Bearer {SUPERVISOR_TOKEN}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        response = requests.post(url, json=data, headers=headers)
+        response.raise_for_status()
+        log_with_timestamp(f"MQTT Updated Home Assistant switch: {unique_id} " f"with state: {state}")
+    except requests.RequestException as e:
+        log_with_timestamp(f"Failed to MQTT update Home Assistant switch: {unique_id}", e)
+
+
 # Helper functions
 def log_with_timestamp(message, force=False):
     if VERBOSE or force:
@@ -104,6 +127,10 @@ def manage_gsf(parameters, records):
                 device["currentVal"] = device_status
                 log_with_timestamp(f"[ANTI_THEFT]: Device status changed: {device['nickname']} - ID: {device_id} - Status: {device_status}")
                 update_home_assistant_binary_sensor(device)
+    if parameters[0] == "1":
+        for record in records:
+            device_id, device_status = int(record[0]), int(record[1])
+            send_mqtt_message(device_id, device_status)
 
 
 def manage_commands(command, parameters, records):
@@ -119,16 +146,16 @@ def on_message(ws, message):
     try:
         # Ensure the message is decoded if it's in bytes
         if isinstance(message, bytes):
-            message = message.decode('utf-8')  # Decode bytes to string using UTF-8
+            message = message.decode("utf-8")  # Decode bytes to string using UTF-8
         # log_with_timestamp(message)
         messages = message.split(chr(0x04))
         for msg in messages:
             if len(msg) < 3:
                 continue
             str_msg = msg[1:-3]
-            cmd_params, *records_data = str_msg.split(chr(0x1e))
-            command, *parameters = cmd_params.split(chr(0x1d))
-            records = [record.split(chr(0x1d)) for record in records_data]
+            cmd_params, *records_data = str_msg.split(chr(0x1E))
+            command, *parameters = cmd_params.split(chr(0x1D))
+            records = [record.split(chr(0x1D)) for record in records_data]
             manage_commands(command, parameters, records)
     except Exception as e:
         log_with_timestamp(f"[ANTI_THEFT]: Error processing message - {e}", force=True)
@@ -137,7 +164,7 @@ def on_message(ws, message):
 def send_ws_command(command, parameters=None):
     message = chr(0x02) + command
     if parameters:
-        message += chr(0x1d) + chr(0x1d).join(parameters)
+        message += chr(0x1D) + chr(0x1D).join(parameters)
     message += chr(0x03)
     crc = build_crc(message)
     full_message = message + crc + chr(0x04)
@@ -161,13 +188,21 @@ def value_to_hex(value):
     return hex(value)[2:].upper()
 
 
+first_connect = True
+
+
 def connect_websocket():
     def on_open(ws):
         log_with_timestamp("WebSocket connected!", force=True)
+
         def send_gsf():
             while True:
                 time.sleep(POLL_INTERVAL)
                 send_ws_command("GSF", ["12"])
+
+        if first_connect and SYNC_LIGHTS_STARTUP:
+            log_with_timestamp("[SYNC_LIGHTS_STARTUP] Sending one-shot GSF command for type 1", force=True)
+            send_ws_command("GSF", "1")
         if SYNC_ANTITHEFT:
             log_with_timestamp("Starting GSF command thread for type 12...", force=True)
             Thread(target=send_gsf, daemon=True).start()
@@ -187,7 +222,7 @@ def connect_websocket():
         on_message=on_message,
         on_close=on_close,
         on_error=on_error,
-        subprotocols=["binary", "base64"]  # Add supported subprotocols here
+        subprotocols=["binary", "base64"],  # Add supported subprotocols here
     )
     ws.run_forever()
 
