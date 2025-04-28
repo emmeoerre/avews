@@ -1,0 +1,19 @@
+name: "AVE Websocket"
+version: "1.4"
+slug: "avews"
+description: "Custom integration for AVE webserver"
+arch:
+  - amd64
+  - armv7
+startup: "application"
+boot: "auto"
+options:
+  web_server_address: "192.168.1.10"
+  poll_interval: 10
+schema:
+  web_server_address: str
+  poll_interval: int
+host_network: true
+privileged:
+  - NET_ADMIN
+homeassistant_api: true
