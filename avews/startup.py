@@ -6,6 +6,8 @@ import time
 from datetime import datetime
 from threading import Thread
 
+print("Starting up...")
+
 # Load add-on options from /data/options.json
 with open("/data/options.json") as f:
     options = json.load(f)
@@ -16,7 +18,7 @@ SUPERVISOR_TOKEN = os.getenv("SUPERVISOR_TOKEN")
 # Load configurable options
 WEB_SERVER_ADDRESS = options.get("web_server_address", "192.168.1.10")
 POLL_INTERVAL = options.get("poll_interval", 10)
-VERBOSE = options.get("verbose", False)
+VERBOSE = options.get("verbose", True)
 SYNC_ANTITHEFT = options.get("sync_antitheft", True)
 
 # Device list
@@ -59,6 +61,7 @@ def create_home_assistant_binary_sensors():
         except requests.RequestException as e:
             log_with_timestamp(f"[HA API]: Failed to create sensor: {device['ha_entity_id']} - {e}", force=True)
 
+
 def update_home_assistant_binary_sensor(device):
     entity_id = f"binary_sensor.{device['ha_entity_id']}"
     url = f"{HOME_ASSISTANT_URL}/states/{entity_id}"
@@ -85,11 +88,11 @@ def update_home_assistant_binary_sensor(device):
     except requests.RequestException as e:
         log_with_timestamp(f"[HA API]: Failed to update sensor: {device['ha_entity_id']} - {e}", force=True)
 
+
 # Helper functions
 def log_with_timestamp(message, force=False):
     if VERBOSE or force:
         print(f"[{datetime.now().isoformat()}] {message}")
-
 
 
 def manage_gsf(parameters, records):
@@ -102,6 +105,7 @@ def manage_gsf(parameters, records):
                 log_with_timestamp(f"[ANTI_THEFT]: Device status changed: {device['nickname']} - ID: {device_id} - Status: {device_status}")
                 update_home_assistant_binary_sensor(device)
 
+
 def manage_commands(command, parameters, records):
     if command == "pong":
         pass
@@ -109,6 +113,7 @@ def manage_commands(command, parameters, records):
         send_ws_command("PONG")
     elif command == "gsf":
         manage_gsf(parameters, records)
+
 
 def on_message(ws, message):
     try:
@@ -128,6 +133,7 @@ def on_message(ws, message):
     except Exception as e:
         log_with_timestamp(f"[ANTI_THEFT]: Error processing message - {e}", force=True)
 
+
 def send_ws_command(command, parameters=None):
     message = chr(0x02) + command
     if parameters:
@@ -140,6 +146,7 @@ def send_ws_command(command, parameters=None):
     else:
         log_with_timestamp("WebSocket is not open. Cannot send message.", force=True)
 
+
 def build_crc(global_string):
     crc = 0
     for char in global_string:
@@ -149,8 +156,10 @@ def build_crc(global_string):
     lsb = value_to_hex(crc & 0xF)
     return msb + lsb
 
+
 def value_to_hex(value):
     return hex(value)[2:].upper()
+
 
 def connect_websocket():
     def on_open(ws):
@@ -181,6 +190,7 @@ def connect_websocket():
         subprotocols=["binary", "base64"]  # Add supported subprotocols here
     )
     ws.run_forever()
+
 
 # Main loop
 if __name__ == "__main__":
