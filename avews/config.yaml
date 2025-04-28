@@ -1,5 +1,5 @@
 name: "AVE Websocket"
-version: "1.7.0"
+version: "1.7.1"
 slug: "avews"
 description: "Custom integration for AVE webserver"
 arch:
@@ -17,6 +17,7 @@ options:
   verbose: false
 schema:
   web_server_address: str
+  web_server_mac: str
   sync_antitheft: bool
   poll_interval: int
   sync_lights_startup: bool
