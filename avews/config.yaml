@@ -1,5 +1,5 @@
 name: "AVE Websocket"
-version: "1.4"
+version: "1.5"
 slug: "avews"
 description: "Custom integration for AVE webserver"
 arch:
