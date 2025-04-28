@@ -193,6 +193,7 @@ first_connect = True
 
 def connect_websocket():
     def on_open(ws):
+        global first_connect  # Declare first_connect as nonlocal
         log_with_timestamp("WebSocket connected!", force=True)
 
         def send_gsf():
@@ -202,6 +203,7 @@ def connect_websocket():
 
         if first_connect and SYNC_LIGHTS_STARTUP:
             log_with_timestamp("[SYNC_LIGHTS_STARTUP] Sending one-shot GSF command for type 1", force=True)
+            first_connect = False
             send_ws_command("GSF", "1")
         if SYNC_ANTITHEFT:
             log_with_timestamp("Starting GSF command thread for type 12...", force=True)
