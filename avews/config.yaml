@@ -22,4 +22,4 @@ host_network: true
 privileged:
   - NET_ADMIN
 homeassistant_api: true
-image: https://github.com/emmeoerre/avews/blob/cc5ec7b586c0de74a78eb575292beb0c4817a0a3/avews/misc/logo.png
+# image: https://github.com/emmeoerre/avews/blob/cc5ec7b586c0de74a78eb575292beb0c4817a0a3/avews/misc/logo.png
