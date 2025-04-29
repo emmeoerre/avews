@@ -36,6 +36,12 @@ DOMINAPLUS_MANAGER_deviceList = [
 ]
 
 
+# Helper functions
+def log_with_timestamp(message, force=False):
+    if VERBOSE or force:
+        print(f"[{datetime.now().isoformat()}] {message}")
+
+
 def create_home_assistant_binary_sensors():
     for device in DOMINAPLUS_MANAGER_deviceList:
         entity_id = f"binary_sensor.{device['ha_entity_id']}"
@@ -112,10 +118,9 @@ def send_mqtt_message(unique_id, state):
         log_with_timestamp(f"Failed to MQTT update Home Assistant switch: {unique_id}", e)
 
 
-# Helper functions
-def log_with_timestamp(message, force=False):
-    if VERBOSE or force:
-        print(f"[{datetime.now().isoformat()}] {message}")
+def toggle_light(device_id):
+    log_with_timestamp("Toggling light with ID: {device_id}")
+    send_ws_command("EBI", device_id, ",10")
 
 
 def manage_gsf(parameters, records):
@@ -136,10 +141,14 @@ def manage_gsf(parameters, records):
 def manage_commands(command, parameters, records):
     if command == "pong":
         pass
+    elif command == "ack":
+        log_with_timestamp(f"Received ACK for command: {parameters[0]}")
     elif command == "ping":
         send_ws_command("PONG")
     elif command == "gsf":
         manage_gsf(parameters, records)
+    else:
+        log_with_timestamp(f"Unknown command: {command} with parameters: {parameters} and records: {records}")
 
 
 def on_message(ws, message):
