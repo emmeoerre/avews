@@ -73,7 +73,8 @@ def create_home_assistant_binary_sensors():
 
 
 def create_home_assistant_at_binary_sensor(entity_id, state):
-    url = f"{HOME_ASSISTANT_URL}/states/{entity_id}"
+    entity = f"binary_sensor.{entity_id}"
+    url = f"{HOME_ASSISTANT_URL}/states/{entity}"
     state = "off" if state == 0 else "on"
     data = {
         "state": state,
@@ -98,8 +99,8 @@ def create_home_assistant_at_binary_sensor(entity_id, state):
 
 
 def update_home_assistant_binary_sensor(device):
-    entity_id = f"binary_sensor.{device['ha_entity_id']}"
-    url = f"{HOME_ASSISTANT_URL}/states/{entity_id}"
+    entity = f"binary_sensor.{device['ha_entity_id']}"
+    url = f"{HOME_ASSISTANT_URL}/states/{entity}"
     state = "off" if device["currentVal"] == 0 else "on"
     data = {
         "state": state,
@@ -283,7 +284,7 @@ def on_message(ws, message):
             records = [record.split(chr(0x1D)) for record in records_data]
             manage_commands(command, parameters, records)
     except Exception as e:
-        log_with_timestamp(f"[ANTI_THEFT]: Error processing message - {e}", force=True)
+        log_with_timestamp(f"[ANTI_THEFT]: Error processing message {message}- {e}", force=True)
 
 
 def send_ws_command(command, parameters=None):
