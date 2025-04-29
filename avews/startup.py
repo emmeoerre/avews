@@ -79,7 +79,7 @@ def create_home_assistant_at_binary_sensor(entity_id, state):
     data = {
         "state": state,
         "attributes": {
-            "unique_id": entity_id,
+            "unique_id": f"avews_{WEB_SERVER_MAC}_{entity_id}",
             "device_class": "motion",
         },
     }
@@ -105,7 +105,7 @@ def update_home_assistant_binary_sensor(device):
     data = {
         "state": state,
         "attributes": {
-            "unique_id": device["ha_entity_id"],
+            "unique_id": f"avews_{WEB_SERVER_MAC}_{device["ha_entity_id"]}",
             "device_class": "motion",
         },
     }
