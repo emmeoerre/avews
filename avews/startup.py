@@ -91,6 +91,8 @@ def create_home_assistant_at_binary_sensor(entity_id, state):
         },
     }
     try:
+        if DEBUG:
+            return
         response = requests.post(
             url,
             headers={
@@ -253,7 +255,7 @@ def manage_at_sensors(device_id, state, par3):
         create_home_assistant_at_binary_sensor(entity_id, int(state))
     else:
         device["currentVal"] = int(state)
-        update_home_assistant_binary_sensor(entity_id)
+        update_home_assistant_binary_sensor(device)
 
 
 def manage_commands(command, parameters, records):
