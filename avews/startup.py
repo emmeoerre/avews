@@ -7,10 +7,17 @@ from datetime import datetime
 from threading import Thread
 
 print("Starting up...")
+DEBUG = False
+# Check if the script is running in a Home Assistant add-on
+if not os.path.exists("/data/options.json"):
+    with open("avews/options.json") as f:
+        options = json.load(f)
+    DEBUG = True
+else:
+    # Load add-on options from /data/options.json
+    with open("/data/options.json") as f:
+        options = json.load(f)
 
-# Load add-on options from /data/options.json
-with open("/data/options.json") as f:
-    options = json.load(f)
 
 # Use the Supervisor API URL and token
 HOME_ASSISTANT_URL = "http://supervisor/core/api"
@@ -236,16 +243,16 @@ def manage_at_sensors(device_id, state, par3):
         # Create a new sensor if it doesn't exist
         device = {
             "type": INDIVIDUAL_AT_SENSOR_MOCK_TYPE,
-            "id": device_id,
+            "id": int(device_id),
             "ha_entity_id": entity_id,
             "nickname": f"AVE AT sensor {device_id}",
-            "currentVal": state,
+            "currentVal": int(state),
         }
         device_list.append(device)
         log_with_timestamp(f"Discovered new AT individual sensor: {device['ha_entity_id']}")
-        create_home_assistant_at_binary_sensor(entity_id, state)
+        create_home_assistant_at_binary_sensor(entity_id, int(state))
     else:
-        device["currentVal"] = state
+        device["currentVal"] = int(state)
         update_home_assistant_binary_sensor(entity_id)
 
 
@@ -286,7 +293,7 @@ def on_message(ws, message):
             records = [record.split(chr(0x1D)) for record in records_data]
             manage_commands(command, parameters, records)
     except Exception as e:
-        log_with_timestamp(f"[ANTI_THEFT]: Error processing message {message}- {e}", force=True)
+        log_with_timestamp(f"Error processing message {message}- {e}", force=True)
 
 
 def send_ws_command(command, parameters=None):
@@ -367,5 +374,6 @@ def connect_websocket():
 
 # Main loop
 if __name__ == "__main__":
-    create_home_assistant_binary_sensors()
+    if not DEBUG:
+        create_home_assistant_binary_sensors()
     connect_websocket()
