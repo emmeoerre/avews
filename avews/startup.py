@@ -22,9 +22,9 @@ POLL_INTERVAL = options.get("poll_interval", 10)
 VERBOSE = options.get("verbose", True)
 SYNC_ANTITHEFT = options.get("sync_antitheft", True)
 SYNC_LIGHTS_STARTUP = options.get("sync_lights_startup", True)
-
+SUBSCRIBE_TO_EVENTS = options.get("subscribe_to_events", False)
 # Device list
-DOMINAPLUS_MANAGER_deviceList = [
+device_list = [
     {"type": 12, "id": 1, "ha_entity_id": "at_pt_garage", "nickname": "Perimetrale Garage", "currentVal": 0},
     {"type": 12, "id": 2, "ha_entity_id": "at_ir_garage", "nickname": "IR Garage", "currentVal": 0},
     {"type": 12, "id": 3, "ha_entity_id": "at_pt_rustico", "nickname": "Perimetrale rustico", "currentVal": 0},
@@ -35,6 +35,8 @@ DOMINAPLUS_MANAGER_deviceList = [
     {"type": 12, "id": 8, "ha_entity_id": "at_ir_p1", "nickname": "IR P1", "currentVal": 0},
 ]
 
+INDIVIDUAL_AT_SENSOR_MOCK_TYPE = 1007  # Mock type for individual AT sensors
+
 
 # Helper functions
 def log_with_timestamp(message, force=False):
@@ -43,7 +45,7 @@ def log_with_timestamp(message, force=False):
 
 
 def create_home_assistant_binary_sensors():
-    for device in DOMINAPLUS_MANAGER_deviceList:
+    for device in device_list:
         entity_id = f"binary_sensor.{device['ha_entity_id']}"
         url = f"{HOME_ASSISTANT_URL}/states/{entity_id}"
         state = "off" if device["currentVal"] == 0 else "on"
@@ -68,6 +70,32 @@ def create_home_assistant_binary_sensors():
             log_with_timestamp(f"[HA API]: Created sensor: {device['ha_entity_id']}")
         except requests.RequestException as e:
             log_with_timestamp(f"[HA API]: Failed to create sensor: {device['ha_entity_id']} - {e}", force=True)
+
+
+def create_home_assistant_at_binary_sensor(device_id, state):
+    entity_id = f"binary_sensor.ave_at_{device_id}"
+    url = f"{HOME_ASSISTANT_URL}/states/{entity_id}"
+    state = "off" if state == 0 else "on"
+    data = {
+        "state": state,
+        "attributes": {
+            "friendly_name": f"AVE AT sensor {device_id}",
+            "device_class": "motion",
+        },
+    }
+    try:
+        response = requests.post(
+            url,
+            headers={
+                "Authorization": f"Bearer {SUPERVISOR_TOKEN}",
+                "Content-Type": "application/json",
+            },
+            json=data,
+        )
+        response.raise_for_status()
+        log_with_timestamp(f"[HA API]: Created AT individual sensor: {device_id}")
+    except requests.RequestException as e:
+        log_with_timestamp(f"[HA API]: Failed to create AT individual sensor: {device_id} - {e}", force=True)
 
 
 def update_home_assistant_binary_sensor(device):
@@ -127,7 +155,7 @@ def manage_gsf(parameters, records):
     if parameters[0] in ["7", "12"]:
         for record in records:
             device_id, device_status = int(record[0]), int(record[1])
-            device = next((d for d in DOMINAPLUS_MANAGER_deviceList if d["id"] == device_id and d["type"] == int(parameters[0])), None)
+            device = next((d for d in device_list if d["id"] == device_id and d["type"] == int(parameters[0])), None)
             if device and device["currentVal"] != device_status:
                 device["currentVal"] = device_status
                 log_with_timestamp(f"[ANTI_THEFT]: Device status changed: {device['nickname']} - ID: {device_id} - Status: {device_status}")
@@ -140,20 +168,25 @@ def manage_gsf(parameters, records):
 
 def manage_upd(parameters, records):
     if parameters[0] == "WS":
+        pass
+        # Async device updates. Will replace the polling approach
         # Devices with ID > 2000000 must be scenarios or something...
-        device_type = int(parameters[1])
-        device_id = int(parameters[2])
-        device_status = int(parameters[3])
-        if device_type in [12, 13]:
-            log_with_timestamp(f"Received async Antitheft status update. Device ID: {device_id}, Device Type: {device_type}, Status: {device_status}")
-        else:
-            log_with_timestamp(f"Received async status update. Device ID: {device_id}, Device Type: {device_type}, Status: {device_status}")
-            if device_type in [1, 2, 22, 9, 3, 16, 19, 6]:  # Limited to [Lighting / Energy / Shutters / Scenarios] for security reasons --- VER228 WANDA
-                for device in DOMINAPLUS_MANAGER_deviceList:
-                    if "id" in device and "type" in device and int(device["id"]) == device_id and int(device["type"]) == device_type:
-                        device["currentVal"] = device_status
+
+        # device_type = int(parameters[1])
+        # device_id = int(parameters[2])
+        # device_status = int(parameters[3])
+        # if device_type in [12, 13]:
+        #     log_with_timestamp(f"Received async Antitheft status update. Device ID: {device_id}, Device Type: {device_type}, Status: {device_status}")
+        # else:
+        #     log_with_timestamp(f"Received async status update. Device ID: {device_id}, Device Type: {device_type}, Status: {device_status}")
+        #     if device_type in [1, 2, 22, 9, 3, 16, 19, 6]:  # Limited to [Lighting / Energy / Shutters / Scenarios] for security reasons --- VER228 WANDA
+        #         for device in DOMINAPLUS_MANAGER_deviceList:
+        #             if "id" in device and "type" in device and int(device["id"]) == device_id and int(device["type"]) == device_type:
+        #                 device["currentVal"] = device_status
     elif parameters[0] == "X" and parameters[1] == "A":  # ANTITHEFT AREA
         # parameters[2] is the area ID. all other parameters are == 0 when triggered, parameters[6] == 1 when cleared
+        # really sensitive, better use a polling approach for now
+
         # area_progressive = int(parameters[2])
         # area_engaged = int(parameters[3])
         # area_in_alarm = int(parameters[5])
@@ -161,7 +194,7 @@ def manage_upd(parameters, records):
         # log_with_timestamp(f"{ANTITHEFT_PREFIX} XA - areaID: {area_progressive} - engaged: {area_engaged} - clear: {area_clear} - alarm: {area_in_alarm}")
         pass
     elif parameters[0] == "X" and parameters[1] == "S":  # ANTITHEFT SENSOR
-        log_with_timestamp(f"Antitheft sensor status update. Device ID: {parameters[2]}, Par3: {parameters[3]}, Par4: {parameters[4]}")
+        manage_at_sensors(parameters[2], parameters[4], parameters[3])
     elif parameters[0] == "X" and parameters[1] == "U":
         # ANTITHEFT UNIT (requires SU2)
         log_with_timestamp(f"XU Antitheft Unit - engaged: {parameters[2]}")
@@ -191,7 +224,28 @@ def manage_upd(parameters, records):
         # Reload gui
         pass
     else:
-        log_with_timestamp(f"Not handled UPD - {parameters}")
+        log_with_timestamp(f"Not yet handled UPD - {parameters}")
+
+
+def manage_at_sensors(device_id, state, par3):
+    # no way to get all the sensors installed
+    log_with_timestamp(f"Antitheft sensor status update. Device ID: {device_id}, Status: {state}, Par3: {par3}")
+    device = next((d for d in device_list if d["id"] == device_id and d["type"] == INDIVIDUAL_AT_SENSOR_MOCK_TYPE), None)
+    entity_id = f"ave_at_{device_id}"
+    if not device:
+        # Create a new sensor if it doesn't exist
+        device = {
+            "type": INDIVIDUAL_AT_SENSOR_MOCK_TYPE,
+            "id": device_id,
+            "ha_entity_id": entity_id,
+            "nickname": f"AVE AT sensor {device_id}",
+            "currentVal": state,
+        }
+        device_list.append(device)
+        log_with_timestamp(f"Discovered new AT individual sensor: {device['ha_entity_id']}")
+        create_home_assistant_at_binary_sensor(device_id, state)
+    else:
+        update_home_assistant_binary_sensor(entity_id, state)
 
 
 def manage_commands(command, parameters, records):
@@ -281,6 +335,14 @@ def connect_websocket():
         if SYNC_ANTITHEFT:
             log_with_timestamp("Starting GSF command thread for type 12...", force=True)
             Thread(target=send_gsf, daemon=True).start()
+
+        if SUBSCRIBE_TO_EVENTS:
+            send_ws_command("SU3")  # Start streaming updates (most of them)
+            # send_ws_command("SU2") # Starts streaming updates (UPD for TLO and XU , NET and CLD messages)
+
+            # forces streaming status update for device family
+            send_ws_command("WSF", "1")  # potentially replaces GSF command for type 1
+            send_ws_command("WSF", "12")  # potentially replaces GSF command for type 12
 
     def on_close(ws, close_status_code, close_msg):
         log_with_timestamp("WebSocket closed. Reconnecting...", force=True)

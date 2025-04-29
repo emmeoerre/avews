@@ -1,5 +1,5 @@
 name: "AVE Websocket"
-version: "1.7.4"
+version: "1.8.0"
 slug: "avews"
 description: "Custom integration for AVE webserver"
 arch:
@@ -14,6 +14,7 @@ options:
   sync_antitheft: true
   poll_interval: 10
   sync_lights_startup: true
+  subscribe_to_events: false
   verbose: false
 schema:
   web_server_address: str
@@ -21,6 +22,7 @@ schema:
   sync_antitheft: bool
   poll_interval: int
   sync_lights_startup: bool
+  subscribe_to_events: bool
   verbose: bool
 # host_network: true
 # privileged:
