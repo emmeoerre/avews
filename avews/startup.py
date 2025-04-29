@@ -237,7 +237,7 @@ def manage_upd(parameters, records):
 def manage_at_sensors(device_id, state, par3):
     # no way to get all the sensors installed
     log_with_timestamp(f"Antitheft sensor status update. Device ID: {device_id}, Status: {state}, Par3: {par3}")
-    device = next((d for d in device_list if d["id"] == device_id and d["type"] == INDIVIDUAL_AT_SENSOR_MOCK_TYPE), None)
+    device = next((d for d in device_list if d["id"] == int(device_id) and d["type"] == INDIVIDUAL_AT_SENSOR_MOCK_TYPE), None)
     entity_id = f"ave_at_{device_id}"
     if not device:
         # Create a new sensor if it doesn't exist
