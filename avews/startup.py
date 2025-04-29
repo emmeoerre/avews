@@ -138,6 +138,62 @@ def manage_gsf(parameters, records):
             send_mqtt_message(device_id, device_status)
 
 
+def manage_upd(parameters, records):
+    if parameters[0] == "WS":
+        # Devices with ID > 2000000 must be scenarios or something...
+        device_type = int(parameters[1])
+        device_id = int(parameters[2])
+        device_status = int(parameters[3])
+        if device_type in [12, 13]:
+            log_with_timestamp(f"Received async Antitheft status update. Device ID: {device_id}, Device Type: {device_type}, Status: {device_status}")
+        else:
+            log_with_timestamp(f"Received async status update. Device ID: {device_id}, Device Type: {device_type}, Status: {device_status}")
+            if device_type in [1, 2, 22, 9, 3, 16, 19, 6]:  # Limited to [Lighting / Energy / Shutters / Scenarios] for security reasons --- VER228 WANDA
+                for device in DOMINAPLUS_MANAGER_deviceList:
+                    if "id" in device and "type" in device and int(device["id"]) == device_id and int(device["type"]) == device_type:
+                        device["currentVal"] = device_status
+    elif parameters[0] == "X" and parameters[1] == "A":  # ANTITHEFT AREA
+        # parameters[2] is the area ID. all other parameters are == 0 when triggered, parameters[6] == 1 when cleared
+        # area_progressive = int(parameters[2])
+        # area_engaged = int(parameters[3])
+        # area_in_alarm = int(parameters[5])
+        # area_clear = int(parameters[6])
+        # log_with_timestamp(f"{ANTITHEFT_PREFIX} XA - areaID: {area_progressive} - engaged: {area_engaged} - clear: {area_clear} - alarm: {area_in_alarm}")
+        pass
+    elif parameters[0] == "X" and parameters[1] == "S":  # ANTITHEFT SENSOR
+        log_with_timestamp(f"Antitheft sensor status update. Device ID: {parameters[2]}, Par3: {parameters[3]}, Par4: {parameters[4]}")
+    elif parameters[0] == "X" and parameters[1] == "U":
+        # ANTITHEFT UNIT (requires SU2)
+        log_with_timestamp(f"XU Antitheft Unit - engaged: {parameters[2]}")
+    elif parameters[0] == "WT":
+        if parameters[1] == "O":  # THERMOSTAT OFFSET
+            pass
+        elif parameters[1] == "S":  # THERMOSTAT SEASON
+            pass
+        elif parameters[1] == "T":  # THERMOSTAT TEMPERATURE
+            pass
+        elif parameters[1] == "L":  # DAIKIN FAN LEVEL
+            pass
+        elif parameters[1] == "Z":  # DAIKIN LOCALOFF
+            pass
+    elif parameters[0] == "TT":  # THERMOSTAT TEMPERATURE
+        pass
+    elif parameters[0] == "TP":  # THERMOSTAT SET POINT
+        pass
+    elif parameters[0] == "TR":  # THERMOSTAT ??
+        pass
+    elif parameters[0] == "TLO":  # THERMOSTAT LOCAL OFF (requires SU2)
+        pass
+
+    elif parameters[0] == "D":  # ICONS UPDATE (GUI ONLY)
+        pass
+    elif parameters[0] == "GUI":
+        # Reload gui
+        pass
+    else:
+        log_with_timestamp(f"Not handled UPD - {parameters}")
+
+
 def manage_commands(command, parameters, records):
     if command == "pong":
         pass
@@ -147,6 +203,14 @@ def manage_commands(command, parameters, records):
         send_ws_command("PONG")
     elif command == "gsf":
         manage_gsf(parameters, records)
+    elif command == "upd":
+        manage_upd(parameters, records)
+    elif command == "cld":
+        # cloud commands received from SU2
+        pass
+    elif command == "net":
+        # IOT commands received from SU2
+        pass
     else:
         log_with_timestamp(f"Unknown command: {command} with parameters: {parameters} and records: {records}")
 
