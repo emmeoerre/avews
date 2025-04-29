@@ -72,14 +72,13 @@ def create_home_assistant_binary_sensors():
             log_with_timestamp(f"[HA API]: Failed to create sensor: {device['ha_entity_id']} - {e}", force=True)
 
 
-def create_home_assistant_at_binary_sensor(device_id, state):
-    entity_id = f"binary_sensor.ave_at_{device_id}"
+def create_home_assistant_at_binary_sensor(entity_id, state):
     url = f"{HOME_ASSISTANT_URL}/states/{entity_id}"
     state = "off" if state == 0 else "on"
     data = {
         "state": state,
         "attributes": {
-            "friendly_name": f"AVE AT sensor {device_id}",
+            "unique_id": entity_id,
             "device_class": "motion",
         },
     }
@@ -93,9 +92,9 @@ def create_home_assistant_at_binary_sensor(device_id, state):
             json=data,
         )
         response.raise_for_status()
-        log_with_timestamp(f"[HA API]: Created AT individual sensor: {device_id}")
+        log_with_timestamp(f"[HA API]: Created sensor: {entity_id}")
     except requests.RequestException as e:
-        log_with_timestamp(f"[HA API]: Failed to create AT individual sensor: {device_id} - {e}", force=True)
+        log_with_timestamp(f"[HA API]: Failed to create sensor: {entity_id} - {e}", force=True)
 
 
 def update_home_assistant_binary_sensor(device):
@@ -105,9 +104,7 @@ def update_home_assistant_binary_sensor(device):
     data = {
         "state": state,
         "attributes": {
-            "friendly_name": device["nickname"],
             "device_class": "motion",
-            "type": device["type"],
         },
     }
     try:
@@ -243,9 +240,10 @@ def manage_at_sensors(device_id, state, par3):
         }
         device_list.append(device)
         log_with_timestamp(f"Discovered new AT individual sensor: {device['ha_entity_id']}")
-        create_home_assistant_at_binary_sensor(device_id, state)
+        create_home_assistant_at_binary_sensor(entity_id, state)
     else:
-        update_home_assistant_binary_sensor(entity_id, state)
+        device["currentVal"] = state
+        update_home_assistant_binary_sensor(entity_id)
 
 
 def manage_commands(command, parameters, records):
