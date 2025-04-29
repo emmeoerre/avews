@@ -105,6 +105,7 @@ def update_home_assistant_binary_sensor(device):
     data = {
         "state": state,
         "attributes": {
+            "unique_id": device["ha_entity_id"],
             "device_class": "motion",
         },
     }
